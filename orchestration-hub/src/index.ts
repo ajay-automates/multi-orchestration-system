@@ -170,7 +170,7 @@ fastify.get('/ws/status', { websocket: true }, async (socket, request) => {
         console.log('Client disconnected from WebSocket');
     });
 
-    socket.on('error', (error) => {
+    socket.on('error', (error: Error) => {
         console.error('WebSocket error:', error);
     });
 });
