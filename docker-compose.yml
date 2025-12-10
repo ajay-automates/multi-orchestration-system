@@ -1,0 +1,138 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database with TimescaleDB
+  postgres:
+    image: timescale/timescaledb:latest-pg15
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: orchestration
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - orchestration
+
+  # Redis for later phases (empty for now, Phase 2 will use it)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - orchestration
+
+  # Orchestration Hub
+  orchestration-hub:
+    build:
+      context: ./orchestration-hub
+      dockerfile: Dockerfile
+    ports:
+      - "4001:4001"
+    environment:
+      NODE_ENV: development
+      PORT: 4001
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: orchestration
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PROJECTS: "email-blast:http://email-blast:3000,chatbot:http://chatbot:3000,social-media:http://social-media:3000"
+      LOG_LEVEL: info
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - orchestration
+    volumes:
+      - ./orchestration-hub:/app
+      - /app/node_modules
+
+  # Dashboard
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "4000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:4001
+    depends_on:
+      - orchestration-hub
+    networks:
+      - orchestration
+    volumes:
+      - ./dashboard:/app
+      - /app/.next
+      - /app/node_modules
+
+  # Email Blast Project (with standardized endpoints)
+  email-blast:
+    build:
+      context: ./projects/email-blast
+      dockerfile: Dockerfile
+    ports:
+      - "4010:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+    networks:
+      - orchestration
+    volumes:
+      - ./projects/email-blast:/app
+      - /app/node_modules
+
+  # Chatbot Project (with standardized endpoints)
+  chatbot:
+    build:
+      context: ./projects/chatbot
+      dockerfile: Dockerfile
+    ports:
+      - "4011:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+    networks:
+      - orchestration
+    volumes:
+      - ./projects/chatbot:/app
+      - /app/node_modules
+
+  # Social Media Automator Project (with standardized endpoints)
+  social-media:
+    build:
+      context: ./projects/social-media
+      dockerfile: Dockerfile
+    ports:
+      - "4012:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+    networks:
+      - orchestration
+    volumes:
+      - ./projects/social-media:/app
+      - /app/node_modules
+
+volumes:
+  postgres_data:
+
+
+networks:
+  orchestration:
+    driver: bridge

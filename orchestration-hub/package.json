@@ -1,0 +1,25 @@
+{
+  "name": "orchestration-hub",
+  "version": "1.0.0",
+  "description": "Central orchestration hub for multi-project monitoring",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "docker-build": "docker build -t orchestration-hub:latest ."
+  },
+  "dependencies": {
+    "fastify": "^4.24.3",
+    "@fastify/cors": "^8.5.0",
+    "@fastify/websocket": "^10.0.1",
+    "pg": "^8.11.3",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/node": "^20.10.6",
+    "@types/pg": "^8.10.9",
+    "tsx": "^4.7.0"
+  }
+}
