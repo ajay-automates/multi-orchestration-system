@@ -1,125 +1,113 @@
 // orchestration-hub/src/database.ts
 // Database layer - handles all PostgreSQL connections and queries
 
-import { Pool, PoolClient } from 'pg';
+// orchestration-hub/src/database.ts
+// Database layer - handles all Supabase connections and queries
+
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { config } from './config';
 import { ProjectHealth, ProjectMetrics, StatusHistoryRecord } from './types';
 
 /**
- * Create a connection pool to PostgreSQL
- * Connection pooling means we reuse connections instead of creating new ones each time
- * This is critical for performance
+ * Database wrapper for Supabase
  */
 export class Database {
-    public pool: Pool;
+    public client: SupabaseClient;
     private initialized = false;
 
     constructor() {
-        this.pool = new Pool({
-            host: config.database.host,
-            port: config.database.port,
-            user: config.database.user,
-            password: config.database.password,
-            database: config.database.database,
-            min: config.database.pool.min,
-            max: config.database.pool.max,
-        });
+        if (!config.supabase.url || !config.supabase.key) {
+            console.warn('⚠️ Supabase credentials not found. Database features will fail.');
+        }
 
-        // Log pool events for debugging
-        this.pool.on('error', (err) => {
-            console.error('Unexpected error on idle client', err);
+        this.client = createClient(config.supabase.url, config.supabase.key, {
+            auth: {
+                persistSession: false,
+            }
         });
     }
 
     /**
      * Initialize the database
-     * This creates tables if they don't exist
-     * In production, you'd use migrations, but for Phase 1 we keep it simple
+     * Verifies connection to Supabase
      */
     async initialize(): Promise<void> {
         if (this.initialized) return;
 
-        const client = await this.pool.connect();
         try {
-            console.log('Initializing database...');
+            console.log('Connecting to Supabase...');
 
-            // The schema creation is in init.sql which gets run by Docker
-            // We just verify the tables exist
-            const result = await client.query(`
-        SELECT EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_name = 'project_status_history'
-        );
-      `);
+            // Simple check to see if we can connect
+            // We'll try to select from project_status_history, limit 1
+            const { error } = await this.client
+                .from('project_status_history')
+                .select('id')
+                .limit(1);
 
-            if (!result.rows[0].exists) {
-                throw new Error('Database tables not initialized. Run init.sql first.');
+            if (error) {
+                // Ignore "relation does not exist" if tables aren't there yet, but warn
+                if (error.code === '42P01') {
+                    console.warn('⚠️ Database tables not found. Please run the SQL schema in Supabase Dashboard SQL Editor.');
+                    console.warn('See init.sql or the 10-Week Plan for the schema.');
+                } else {
+                    throw new Error(`Supabase connection failed: ${error.message}`);
+                }
             }
 
             this.initialized = true;
-            console.log('Database initialized successfully');
-        } finally {
-            client.release();
+            console.log('✅ Supabase connected successfully');
+        } catch (error) {
+            console.error('Failed to initialize database:', error);
+            // Don't throw, allow hub to run even if DB is flaky (Phase 2 resilience)
         }
     }
 
     /**
      * Record a health check result in the database
-     * Called every 10 seconds with the latest health status
      */
     async recordStatusHistory(
         projectName: string,
         health: ProjectHealth
     ): Promise<void> {
-        const query = `
-      INSERT INTO project_status_history 
-      (project_name, status, last_check, uptime_percentage, response_time_ms, recorded_at)
-      VALUES ($1, $2, $3, $4, $5, NOW())
-    `;
+        const { error } = await this.client
+            .from('project_status_history')
+            .insert({
+                project_name: projectName,
+                status: health.status,
+                last_check: health.lastCheck.toISOString(),
+                uptime_percentage: health.uptime,
+                response_time_ms: health.responseTime,
+                recorded_at: new Date().toISOString()
+            });
 
-        try {
-            await this.pool.query(query, [
-                projectName,
-                health.status,
-                health.lastCheck,
-                health.uptime,
-                health.responseTime,
-            ]);
-        } catch (error) {
+        if (error) {
             console.error(`Failed to record status for ${projectName}:`, error);
-            // Don't throw - we don't want a database error to stop monitoring
         }
     }
 
     /**
      * Record metrics in the database
-     * Called every 30 seconds with the latest metrics
      */
     async recordMetrics(
         projectName: string,
         metrics: ProjectMetrics
     ): Promise<void> {
-        const query = `
-      INSERT INTO project_metrics
-      (project_name, requests_per_second, error_rate, error_count, api_usage, 
-       memory_usage_percent, cpu_usage_percent, database_query_time_ms, recorded_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-    `;
+        const { error } = await this.client
+            .from('project_metrics')
+            .insert({
+                project_name: projectName,
+                requests_per_second: metrics.requestsPerSecond,
+                error_rate: metrics.errorRate,
+                error_count: metrics.errorCount,
+                api_usage: metrics.apiUsage,
+                memory_usage_percent: metrics.memoryUsagePercent,
+                cpu_usage_percent: metrics.cpuUsagePercent,
+                database_query_time_ms: metrics.databaseQueryTime,
+                recorded_at: new Date().toISOString()
+            });
 
-        try {
-            await this.pool.query(query, [
-                projectName,
-                metrics.requestsPerSecond,
-                metrics.errorRate,
-                metrics.errorCount,
-                JSON.stringify(metrics.apiUsage),
-                metrics.memoryUsagePercent,
-                metrics.cpuUsagePercent,
-                metrics.databaseQueryTime,
-            ]);
-        } catch (error) {
+        if (error) {
             console.error(`Failed to record metrics for ${projectName}:`, error);
-            // Don't throw
         }
     }
 
@@ -127,85 +115,82 @@ export class Database {
      * Get the latest health status for a project
      */
     async getLatestStatus(projectName: string): Promise<StatusHistoryRecord | null> {
-        const query = `
-      SELECT project_name, status, last_check, uptime_percentage, response_time_ms, recorded_at
-      FROM project_status_history
-      WHERE project_name = $1
-      ORDER BY recorded_at DESC
-      LIMIT 1
-    `;
+        const { data, error } = await this.client
+            .from('project_status_history')
+            .select('*')
+            .eq('project_name', projectName)
+            .order('recorded_at', { ascending: false })
+            .limit(1)
+            .single();
 
-        try {
-            const result = await this.pool.query(query, [projectName]);
-            if (result.rows.length === 0) {
-                return null;
-            }
-
-            const row = result.rows[0];
-            return {
-                projectName: row.project_name,
-                status: row.status,
-                lastCheck: row.last_check,
-                uptimePercentage: row.uptime_percentage,
-                responseTimeMs: row.response_time_ms,
-                recordedAt: row.recorded_at,
-            };
-        } catch (error) {
-            console.error(`Failed to get latest status for ${projectName}:`, error);
+        if (error || !data) {
             return null;
         }
+
+        return {
+            projectName: data.project_name,
+            status: data.status,
+            lastCheck: new Date(data.last_check),
+            uptimePercentage: data.uptime_percentage,
+            responseTimeMs: data.response_time_ms,
+            recordedAt: new Date(data.recorded_at),
+        };
     }
 
     /**
      * Get historical status for a project over a time range
-     * Used by the dashboard to draw charts
      */
     async getStatusHistory(
         projectName: string,
         hours: number = 24
     ): Promise<StatusHistoryRecord[]> {
-        const query = `
-      SELECT project_name, status, last_check, uptime_percentage, response_time_ms, recorded_at
-      FROM project_status_history
-      WHERE project_name = $1
-      AND recorded_at > NOW() - INTERVAL '${hours} hours'
-      ORDER BY recorded_at ASC
-    `;
+        const timeThreshold = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 
-        try {
-            const result = await this.pool.query(query, [projectName]);
-            return result.rows.map(row => ({
-                projectName: row.project_name,
-                status: row.status,
-                lastCheck: row.last_check,
-                uptimePercentage: row.uptime_percentage,
-                responseTimeMs: row.response_time_ms,
-                recordedAt: row.recorded_at,
-            }));
-        } catch (error) {
+        const { data, error } = await this.client
+            .from('project_status_history')
+            .select('*')
+            .eq('project_name', projectName)
+            .gt('recorded_at', timeThreshold)
+            .order('recorded_at', { ascending: true });
+
+        if (error) {
             console.error(`Failed to get status history for ${projectName}:`, error);
             return [];
         }
+
+        return (data || []).map(row => ({
+            projectName: row.project_name,
+            status: row.status,
+            lastCheck: new Date(row.last_check),
+            uptimePercentage: row.uptime_percentage,
+            responseTimeMs: row.response_time_ms,
+            recordedAt: new Date(row.recorded_at),
+        }));
     }
 
     /**
      * Get the latest metrics for all projects
+     * Note: Supabase doesn't support distinct on easily via JS client for this specific query pattern efficiently without RPC, 
+     * but we'll use a simplified approach for Phase 1/2.
      */
     async getLatestMetricsForAll(): Promise<Record<string, ProjectMetrics>> {
-        const query = `
-      WITH latest_metrics AS (
-        SELECT DISTINCT ON (project_name) *
-        FROM project_metrics
-        ORDER BY project_name, recorded_at DESC
-      )
-      SELECT * FROM latest_metrics
-    `;
+        // Fetch last 100 records and categorize in memory (simple for small scale)
+        const { data, error } = await this.client
+            .from('project_metrics')
+            .select('*')
+            .order('recorded_at', { ascending: false })
+            .limit(100);
 
-        try {
-            const result = await this.pool.query(query);
-            const metrics: Record<string, ProjectMetrics> = {};
+        if (error) {
+            console.error('Failed to get latest metrics:', error);
+            return {};
+        }
 
-            result.rows.forEach(row => {
+        const metrics: Record<string, ProjectMetrics> = {};
+        const processingSet = new Set<string>();
+
+        for (const row of (data || [])) {
+            if (!processingSet.has(row.project_name)) {
                 metrics[row.project_name] = {
                     projectName: row.project_name,
                     requestsPerSecond: row.requests_per_second,
@@ -215,23 +200,20 @@ export class Database {
                     memoryUsagePercent: row.memory_usage_percent,
                     cpuUsagePercent: row.cpu_usage_percent,
                     databaseQueryTime: row.database_query_time_ms,
-                    timestamp: row.recorded_at,
+                    timestamp: new Date(row.recorded_at),
                 };
-            });
-
-            return metrics;
-        } catch (error) {
-            console.error('Failed to get latest metrics:', error);
-            return {};
+                processingSet.add(row.project_name);
+            }
         }
+
+        return metrics;
     }
 
     /**
-     * Close the database connection pool
-     * Called on application shutdown
+     * Close the database connection
      */
     async close(): Promise<void> {
-        await this.pool.end();
+        // Supabase client doesn't need explicit closing in the same way as a pg pool
     }
 }
 

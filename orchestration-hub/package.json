@@ -10,16 +10,19 @@
     "docker-build": "docker build -t orchestration-hub:latest ."
   },
   "dependencies": {
-    "fastify": "^4.24.3",
+    "@anthropic-ai/sdk": "^0.71.2",
     "@fastify/cors": "^8.5.0",
     "@fastify/websocket": "^10.0.1",
-    "pg": "^8.11.3",
-    "dotenv": "^16.3.1"
+    "@supabase/supabase-js": "^2.87.1",
+    "@types/uuid": "^10.0.0",
+    "dotenv": "^16.6.1",
+    "fastify": "^4.24.3",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
-    "typescript": "^5.3.3",
     "@types/node": "^20.10.6",
     "@types/pg": "^8.10.9",
-    "tsx": "^4.7.0"
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
   }
 }

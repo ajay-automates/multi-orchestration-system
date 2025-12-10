@@ -1,0 +1,5 @@
+
+> email-blast@1.0.0 start
+> node dist/index.js
+
+Email Blast Server running on port 3010

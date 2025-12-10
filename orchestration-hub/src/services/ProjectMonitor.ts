@@ -1,8 +1,9 @@
 // orchestration-hub/src/services/ProjectMonitor.ts
 // The monitoring service - continuously checks project health
 
-import { Project, ProjectHealth, ProjectMetrics } from '../types';
+import { Project, ProjectHealth, ProjectMetrics, EventType } from '../types';
 import { database } from '../database';
+import { eventBus } from './EventBus';
 
 /**
  * ProjectMonitor is responsible for:
@@ -139,6 +140,18 @@ export class ProjectMonitor {
                 console.log(
                     `[${project.name}] Status changed: ${previousStatus?.status || 'unknown'} -> ${health.status}`
                 );
+
+                // Phase 2: Publish event
+                eventBus.publish(
+                    EventType.PROJECT_HEALTH_CHANGED,
+                    'ProjectMonitor',
+                    {
+                        projectName: project.name,
+                        oldStatus: previousStatus?.status || 'unknown',
+                        newStatus: health.status,
+                        health
+                    }
+                );
             }
         } catch (error) {
             // Project is down or not responding
@@ -181,6 +194,16 @@ export class ProjectMonitor {
 
             // Record in database
             await database.recordMetrics(project.name, metrics);
+
+            // Phase 2: Publish event for analysis
+            eventBus.publish(
+                EventType.METRICS_COLLECTED,
+                'ProjectMonitor',
+                {
+                    projectName: project.name,
+                    metrics
+                }
+            );
         } catch (error) {
             console.warn(
                 `Failed to collect metrics for ${project.name}:`,
@@ -216,6 +239,18 @@ export class ProjectMonitor {
         if (previousStatus?.status !== 'down') {
             console.error(
                 `[${project.name}] Project is DOWN. Error: ${error}`
+            );
+
+            // Phase 2: Publish event
+            eventBus.publish(
+                EventType.PROJECT_HEALTH_CHANGED,
+                'ProjectMonitor',
+                {
+                    projectName: project.name,
+                    oldStatus: previousStatus?.status || 'unknown',
+                    newStatus: 'down',
+                    health
+                }
             );
         }
     }

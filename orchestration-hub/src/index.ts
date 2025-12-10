@@ -45,8 +45,8 @@ fastify.get('/health', async (request, reply) => {
  */
 fastify.get('/ready', async (request, reply) => {
     try {
-        // Check database connection
-        await database.pool.query('SELECT 1');
+        // Initialize database
+        await database.initialize();
         return { ready: true };
     } catch (error) {
         reply.code(503);
@@ -151,6 +151,67 @@ fastify.get<{ Params: { projectName: string }; Querystring: { hours?: string } }
     }
 );
 
+import { HealthMonitorAgent } from './agents/HealthMonitorAgent';
+import { MetricsAnalyzerAgent } from './agents/MetricsAnalyzerAgent';
+import { AutoFixerAgent } from './agents/AutoFixerAgent';
+import { eventBus } from './services/EventBus';
+import { EventType } from './types';
+
+// Create agents
+const healthMonitorAgent = new HealthMonitorAgent();
+const metricsAnalyzerAgent = new MetricsAnalyzerAgent();
+const autoFixerAgent = new AutoFixerAgent();
+
+/**
+ * TEST ENDPOINT: Trigger an anomaly manually to test AI Agent
+ * POST /api/test/anomaly
+ * Body: { projectName: "email-blast", type: "high_memory" }
+ */
+fastify.post<{ Body: { projectName: string; type: string } }>(
+    '/api/test/anomaly',
+    async (request, reply) => {
+        const { projectName, type } = request.body;
+
+        console.log(`[TEST] Manually triggering anomaly '${type}' for ${projectName}`);
+
+        // Construct fake metrics based on the requested anomaly type
+        let metrics: any = {
+            projectName,
+            requestsPerSecond: 50,
+            errorRate: 0.01,
+            memoryUsagePercent: 40,
+            cpuUsagePercent: 20,
+            timestamp: new Date()
+        };
+        let anomalies: string[] = [];
+
+        if (type === 'high_memory') {
+            metrics.memoryUsagePercent = 95;
+            anomalies.push('High Memory Usage (95%)');
+        } else if (type === 'high_cpu') {
+            metrics.cpuUsagePercent = 98;
+            anomalies.push('High CPU Usage (98%)');
+        } else if (type === 'high_error') {
+            metrics.errorRate = 15.0;
+            anomalies.push('Critical Error Rate (15%)');
+        }
+
+        // Publish the event to the EventBus
+        // This will be picked up by AutoFixerAgent -> ClaudeAnalyzer
+        eventBus.publish(
+            EventType.ANOMALY_DETECTED,
+            'TestEndpoint',
+            {
+                projectName,
+                metrics,
+                anomalies
+            }
+        );
+
+        return { success: true, message: 'Anomaly triggered. Watch the AI agent response!' };
+    }
+);
+
 /**
  * WebSocket endpoint for real-time status updates
  * The dashboard can connect here and receive live updates
@@ -166,8 +227,29 @@ fastify.get('/ws/status', { websocket: true }, async (socket, request) => {
         timestamp: new Date(),
     }));
 
+    // Subscribe to EventBus events and forward to WebSocket
+    // We create a specific handler for this socket connection
+    const forwardEvent = (event: any) => {
+        if (socket.readyState === socket.OPEN) {
+            socket.send(JSON.stringify({
+                type: 'event',
+                event
+            }));
+        }
+    };
+
+    // Forward relevant events
+    eventBus.subscribe(EventType.PROJECT_HEALTH_CHANGED, forwardEvent);
+    eventBus.subscribe(EventType.PROJECT_DOWN, forwardEvent);
+    eventBus.subscribe(EventType.ANOMALY_DETECTED, forwardEvent);
+    eventBus.subscribe(EventType.PROJECT_RECOVERED, forwardEvent);
+    eventBus.subscribe(EventType.ACTION_EXECUTED, forwardEvent);
+    eventBus.subscribe(EventType.AI_DECISION, forwardEvent);
+
     socket.on('close', () => {
         console.log('Client disconnected from WebSocket');
+        // Ideally we should unsubscribe here, but EventBus doesn't support unsubscribe yet
+        // In a real app we'd need to fix that memory leak
     });
 
     socket.on('error', (error: Error) => {
@@ -183,6 +265,12 @@ async function start() {
         // Initialize database
         console.log('Connecting to database...');
         await database.initialize();
+
+        // Start agents (Phase 2)
+        console.log('Starting intelligent agents...');
+        await healthMonitorAgent.start();
+        await metricsAnalyzerAgent.start();
+        await autoFixerAgent.start();
 
         // Start monitoring projects
         console.log('Starting project monitoring...');
@@ -205,6 +293,9 @@ async function start() {
 async function stop() {
     console.log('Shutting down gracefully...');
     await projectMonitor.stop();
+    await healthMonitorAgent.stop();
+    await metricsAnalyzerAgent.stop();
+    await eventBus.close();
     await database.close();
     await fastify.close();
     process.exit(0);

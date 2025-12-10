@@ -86,22 +86,15 @@ export interface OrchestratorResponse<T> {
 export interface Config {
   node_env: 'development' | 'production' | 'staging';
   port: number;
-  database: {
-    host: string;
-    port: number;
-    user: string;
-    password: string;
-    database: string;
-    pool: {
-      min: number;
-      max: number;
-    };
-  };
-  redis: {
-    host: string;
-    port: number;
+  supabase: {
+    url: string;
+    key: string;
   };
   projects: Project[];
+  ai: {
+    apiKey: string;
+    model: string;
+  };
   logging: {
     level: 'debug' | 'info' | 'warn' | 'error';
   };
@@ -119,4 +112,33 @@ export class OrchestrationError extends Error {
     super(message);
     this.name = 'OrchestrationError';
   }
+}
+
+/**
+ * Event types for the event bus
+ */
+export enum EventType {
+  PROJECT_HEALTH_CHANGED = 'project.health.changed',
+  PROJECT_DOWN = 'project.down',
+  PROJECT_DEGRADED = 'project.degraded',
+  PROJECT_RECOVERED = 'project.recovered',
+  METRICS_COLLECTED = 'metrics.collected',
+  ANOMALY_DETECTED = 'anomaly_detected',
+  ACTION_TRIGGERED = 'action.triggered',
+  ACTION_COMPLETED = 'action.completed',
+  ACTION_FAILED = 'action.failed',
+  ACTION_EXECUTED = 'action_executed',
+  AI_DECISION = 'ai_decision'
+}
+
+/**
+ * Standard event structure
+ */
+export interface SystemEvent {
+  id: string;
+  type: EventType;
+  source: string;        // Which agent/service generated this?
+  timestamp: Date;
+  payload: any;          // Flexible payload depending on event type
+  metadata?: Record<string, any>;
 }
