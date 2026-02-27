@@ -1,178 +1,91 @@
-# 🤖 Multi-Orchestration Intelligence System
+<div align="center">
 
-> **AI-Powered Self-Healing Infrastructure** - A production-ready autonomous system that monitors, analyzes, and repairs itself using Claude AI.
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=15,22,28&height=170&section=header&text=Multi-Orchestration%20System&fontSize=40&fontAlignY=35&animation=twinkling&fontColor=ffffff&desc=AI-Powered%20Self-Healing%20Infrastructure%20%7C%20Claude%20AI&descAlignY=55&descSize=18" width="100%" />
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
-[![Supabase](https://img.shields.io/badge/Supabase-Enabled-brightgreen.svg)](https://supabase.com/)
-[![Claude AI](https://img.shields.io/badge/Claude-3.5%20Sonnet-purple.svg)](https://www.anthropic.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](.)
+[![Claude AI](https://img.shields.io/badge/Claude_3.5-Reasoning-8B5CF6?style=for-the-badge&logo=anthropic&logoColor=white)](.)
+[![Supabase](https://img.shields.io/badge/Supabase-Real--Time-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](.)
+[![Fastify](https://img.shields.io/badge/Fastify-Server-000000?style=for-the-badge&logo=fastify&logoColor=white)](.)
+[![Next.js](https://img.shields.io/badge/Next.js-Dashboard-000000?style=for-the-badge&logo=next.js&logoColor=white)](.)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
----
+**Autonomous system that monitors, analyzes, and repairs itself using Claude AI. Detects anomalies. Fixes them. No human intervention.**
 
-## 🎯 What Is This?
+[Quick Start](#quick-start) · [Architecture](#project-structure) · [Test the AI](#test-the-ai) · [Dashboard](#dashboard-features)
 
-A **fully autonomous orchestration system** that:
-- 📊 **Monitors** multiple projects in real-time
-- 🔍 **Detects** anomalies using intelligent agents
-- 🤖 **Analyzes** problems with Claude AI
-- 🔧 **Repairs** itself without human intervention
-- 📈 **Learns** from every decision
-
-**Built with**: TypeScript, Node.js, Fastify, Next.js, Supabase, Anthropic Claude
+</div>
 
 ---
 
-## ✨ Features
+## What This Does
 
-### 🏗️ Phase 1: Observability Foundation
-- ✅ Real-time health monitoring (10s intervals)
-- ✅ Comprehensive metrics collection (CPU, Memory, Errors)
-- ✅ Supabase PostgreSQL integration
-- ✅ Beautiful Next.js dashboard with live updates
-
-### 🧠 Phase 2: Distributed Intelligence
-- ✅ Event-driven architecture with pub/sub
-- ✅ **HealthMonitorAgent** - Detects failures instantly
-- ✅ **MetricsAnalyzerAgent** - Identifies performance anomalies
-- ✅ Real-time WebSocket streaming to dashboard
-
-### 🔧 Phase 3: Autonomous Action
-- ✅ **AutoFixerAgent** - Self-healing capabilities
-- ✅ **ActionExecutor** - Safe remediation actions:
-  - `restart_service` - Restart crashed services
-  - `clear_cache` - Free up memory
-  - `pause_service` - Prevent cascade failures
-- ✅ Complete audit trail in Supabase
-
-### 🤖 Phase 4: AI Reasoning
-- ✅ **Claude 3.5 Sonnet** integration
-- ✅ Context-aware decision making
-- ✅ Confidence scoring (0-1)
-- ✅ Autonomous execution when confidence > 70%
-- ✅ Human escalation for uncertain cases
+A **fully autonomous orchestration system** that monitors multiple projects in real-time, detects anomalies using intelligent agents, analyzes problems with Claude AI, repairs itself without human intervention, and learns from every decision.
 
 ---
 
-## 🚀 Quick Start
+## System Flow
 
-### Prerequisites
-- Node.js 18+
-- Supabase account ([free tier works](https://supabase.com))
-- Anthropic API key ([get one here](https://console.anthropic.com/))
+```
+Project Health Monitored (10s intervals)
+        │
+        ▼
+HealthMonitorAgent detects failure
+        │
+        ▼
+MetricsAnalyzerAgent identifies anomaly pattern
+        │
+        ▼
+AutoFixerAgent calls Claude AI
+        │
+        ├──→ Claude analyzes metrics + context
+        ├──→ Recommends action with confidence score
+        └──→ If confidence > 70%: execute automatically
+              If confidence < 70%: escalate to human
+        │
+        ▼
+Action executed (restart / clear cache / pause service)
+        │
+        ▼
+Audit trail logged in Supabase
+Dashboard updates in real-time via WebSocket
+```
 
-### 1. Clone & Install
+---
+
+## Capabilities
+
+| Phase | Feature | Status |
+|-------|---------|--------|
+| **Phase 1: Observability** | Real-time health monitoring (10s intervals), metrics collection, Supabase integration, Next.js dashboard | ✅ |
+| **Phase 2: Intelligence** | Event-driven pub/sub, HealthMonitorAgent, MetricsAnalyzerAgent, WebSocket streaming | ✅ |
+| **Phase 3: Autonomous Action** | AutoFixerAgent, ActionExecutor (restart, clear cache, pause), audit trail | ✅ |
+| **Phase 4: AI Reasoning** | Claude 3.5 Sonnet integration, confidence scoring, autonomous execution | ✅ |
+
+---
+
+## Quick Start
 
 ```bash
 git clone https://github.com/ajay-automates/multi-orchestration-system.git
 cd multi-orchestration-system
 
-# Install orchestration hub
-cd orchestration-hub
-npm install
+# Install
+cd orchestration-hub && npm install
+cd ../dashboard && npm install
 
-# Install dashboard
-cd ../dashboard
-npm install
+# Configure (see .env templates in repo)
+# Start orchestration hub
+cd orchestration-hub && npm run dev    # http://localhost:4001
+
+# Start dashboard
+cd dashboard && npm run dev            # http://localhost:3000
 ```
-
-### 2. Configure Environment
-
-**Orchestration Hub** (`orchestration-hub/.env`):
-```env
-NODE_ENV=development
-PORT=4001
-LOG_LEVEL=info
-
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_KEY=your_service_key
-
-# AI
-ANTHROPIC_API_KEY=your_anthropic_key
-
-# Projects to monitor
-PROJECTS=email-blast:http://localhost:3010,chatbot:http://localhost:3011,social-media:http://localhost:3012
-```
-
-**Dashboard** (`dashboard/.env.local`):
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-```
-
-### 3. Initialize Database
-
-Run this SQL in your Supabase SQL Editor:
-
-```sql
--- Project Status History
-CREATE TABLE project_status_history (
-    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-    project_name VARCHAR NOT NULL,
-    status VARCHAR NOT NULL,
-    last_check TIMESTAMPTZ NOT NULL,
-    uptime_percentage FLOAT NOT NULL,
-    response_time_ms INT NOT NULL,
-    recorded_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Project Metrics
-CREATE TABLE project_metrics (
-    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-    project_name VARCHAR NOT NULL,
-    requests_per_second FLOAT NOT NULL,
-    error_rate FLOAT NOT NULL,
-    error_count INT NOT NULL,
-    api_usage JSONB,
-    memory_usage_percent FLOAT NOT NULL,
-    cpu_usage_percent FLOAT NOT NULL,
-    database_query_time_ms INT NOT NULL,
-    recorded_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Agent Events
-CREATE TABLE agent_events (
-    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-    project_name VARCHAR NOT NULL,
-    event_type VARCHAR NOT NULL,
-    description TEXT,
-    severity VARCHAR,
-    metadata JSONB,
-    occurred_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Indexes
-CREATE INDEX idx_status_project_time ON project_status_history(project_name, recorded_at DESC);
-CREATE INDEX idx_metrics_project_time ON project_metrics(project_name, recorded_at DESC);
-CREATE INDEX idx_events_time ON agent_events(occurred_at DESC);
-```
-
-### 4. Start the System
-
-**Terminal 1 - Orchestration Hub:**
-```bash
-cd orchestration-hub
-npm run dev
-```
-
-**Terminal 2 - Dashboard:**
-```bash
-cd dashboard
-npm run dev
-```
-
-**Access:**
-- 🎨 Dashboard: http://localhost:3000
-- 🧠 API: http://localhost:4001
-- 📊 Health: http://localhost:4001/health
 
 ---
 
-## 🧪 Test the AI
+## Test the AI
 
-Trigger an anomaly to watch Claude AI analyze and fix it:
+Trigger an anomaly and watch Claude analyze and fix it:
 
 ```bash
 curl -X POST http://localhost:4001/api/test/anomaly \
@@ -180,171 +93,68 @@ curl -X POST http://localhost:4001/api/test/anomaly \
   -d '{"projectName": "email-blast", "type": "high_memory"}'
 ```
 
-**What happens:**
-1. 🚨 System detects anomaly
-2. 🤖 AutoFixerAgent calls Claude AI
-3. 🧠 Claude analyzes metrics and recommends action
-4. ✅ If confidence > 70%, action executes automatically
-5. 📊 Dashboard shows real-time AI decision + action
+**What happens:** System detects anomaly → AutoFixerAgent calls Claude → Claude analyzes metrics → If confidence > 70%, action executes automatically → Dashboard shows real-time AI decision.
 
-**Available test types:**
-- `high_memory` - Triggers cache clearing
-- `high_cpu` - Triggers service pause
-- `high_error` - Triggers service restart
+Available test types: `high_memory` (triggers cache clearing), `high_cpu` (triggers service pause), `high_error` (triggers service restart).
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 multi-orchestration-system/
-├── orchestration-hub/          # The Brain 🧠
+├── orchestration-hub/          # The Brain
 │   ├── src/
-│   │   ├── agents/             # Intelligent Agents
-│   │   │   ├── BaseAgent.ts
+│   │   ├── agents/
 │   │   │   ├── HealthMonitorAgent.ts
 │   │   │   ├── MetricsAnalyzerAgent.ts
 │   │   │   └── AutoFixerAgent.ts
 │   │   ├── services/
-│   │   │   ├── EventBus.ts     # Event System
+│   │   │   ├── EventBus.ts
 │   │   │   ├── ProjectMonitor.ts
 │   │   │   ├── ActionExecutor.ts
-│   │   │   └── ClaudeAnalyzer.ts  # AI Integration
-│   │   ├── types/
-│   │   ├── config.ts
-│   │   ├── database.ts         # Supabase Client
+│   │   │   └── ClaudeAnalyzer.ts
 │   │   └── index.ts
-│   └── package.json
-│
-├── dashboard/                  # The UI 🎨
-│   ├── app/
-│   │   └── page.tsx           # Main Dashboard
-│   └── package.json
-│
-├── projects/                   # Mock Projects
-│   ├── email-blast/
-│   ├── chatbot/
-│   └── social-media/
-│
-└── docs/                       # Documentation
-    ├── SYSTEM_COMPLETE.md
-    └── DEPLOYMENT.md
+├── dashboard/                  # The UI
+│   └── app/page.tsx
+└── projects/                   # Mock Services
 ```
 
 ---
 
-## 🎯 Use Cases
+## Dashboard Features
 
-### 1. **Microservices Monitoring**
-Monitor dozens of microservices, detect failures, and auto-restart crashed services.
-
-### 2. **Performance Optimization**
-Detect memory leaks, high CPU usage, and automatically clear caches or scale resources.
-
-### 3. **Error Rate Management**
-Monitor error rates and automatically rollback deployments when errors spike.
-
-### 4. **Intelligent Alerting**
-AI analyzes context before alerting, reducing false positives by 90%.
-
-### 5. **Self-Healing Infrastructure**
-Automatically fix common issues without human intervention.
+| Feature | Details |
+|---------|---------|
+| **Real-Time Status** | Live project health indicators |
+| **Agent Activity Log** | Every decision and action logged |
+| **Metrics Charts** | CPU, memory, error rates over time |
+| **AI Decisions** | View Claude's reasoning for each action |
+| **Historical Data** | Query past events and metrics |
 
 ---
 
-## 🔧 Configuration
+## Tech Stack
 
-### Agent Thresholds
-
-Customize in `orchestration-hub/src/agents/MetricsAnalyzerAgent.ts`:
-
-```typescript
-const THRESHOLDS = {
-    CPU_PERCENT: 80,
-    MEMORY_PERCENT: 85,
-    ERROR_RATE: 5,
-    RESPONSE_TIME_MS: 1000
-};
-```
-
-### AI Confidence Threshold
-
-Adjust in `orchestration-hub/src/agents/AutoFixerAgent.ts`:
-
-```typescript
-if (decision.confidence > 0.7) {  // 70% confidence
-    // Execute action
-}
-```
+`TypeScript` `Node.js` `Fastify` `Next.js` `Supabase` `Claude AI` `WebSocket` `Event-Driven Architecture`
 
 ---
 
-## 📊 Dashboard Features
+## Related Projects
 
-- **Real-Time Status**: Live project health indicators
-- **Agent Activity Log**: See every decision and action
-- **Metrics Charts**: CPU, Memory, Error rates over time
-- **AI Decisions**: View Claude's reasoning for each action
-- **Historical Data**: Query past events and metrics
-
----
-
-## 🚢 Deployment
-
-### Deploy to Production
-
-**Orchestration Hub** - Deploy to Railway/Render:
-```bash
-cd orchestration-hub
-npm run build
-npm start
-```
-
-**Dashboard** - Deploy to Vercel:
-```bash
-cd dashboard
-vercel deploy --prod
-```
-
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed instructions.
+| Project | Description |
+|---------|-------------|
+| [AI Code Review Bot](https://github.com/ajay-automates/ai-code-review-bot) | Automated PR reviews via Claude + GitHub Actions |
+| [Social Media Automator](https://github.com/ajay-automates/social-media-automator) | Multi-platform SaaS with 6 AI agents |
 
 ---
 
-## 🤝 Contributing
+<div align="center">
 
-Contributions welcome! Please read our [Contributing Guide](./CONTRIBUTING.md).
+**Built by [Ajay Kumar Reddy Nelavetla](https://github.com/ajay-automates)** · December 2025
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+*Infrastructure that fixes itself. For real.*
 
----
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=15,22,28&height=100&section=footer" width="100%" />
 
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- **Anthropic** - Claude AI integration
-- **Supabase** - Database and real-time infrastructure
-- **Fastify** - High-performance HTTP framework
-- **Next.js** - React framework for the dashboard
-
----
-
-## 📞 Support
-
-- 📧 Email: support@ajay-automates.com
-- 🐛 Issues: [GitHub Issues](https://github.com/ajay-automates/multi-orchestration-system/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/ajay-automates/multi-orchestration-system/discussions)
-
----
-
-**Built with ❤️ by the Ajay Automates Team**
-
-⭐ Star this repo if you find it useful!
+</div>
